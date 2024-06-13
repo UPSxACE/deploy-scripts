@@ -11,21 +11,24 @@ container_running() {
   fi
 }
 
-container_name="portainer"
-image_name="portainer:latest"
+branch="master"
+network="traefik-docker-stack_traefik_network"
+container_name="vyzion-strapi"
+image_name="vyzion-strapi:latest"
 certresolver="production"
 hostname="strapi.vyzion.pt"
-path="vyzion/vyzion-strapi"
+path="../vyzion-strapi"
 # remember that this is used AFTER the cd to $path
-env_file="../../local/portainer.env" 
+env_file="../_local/vy-strapi.env" 
 
 if container_running "$container_name"; then
   echo "Proceeding with the existing container..."
   cd ${path}
+  git checkout ${branch}
   git pull
   docker rename $container_name ${container_name}_old
   docker build -t $image_name --build-arg="CERTRESOLVER=$certresolver" --build-arg="HOSTNAME=$hostname" .
-  docker run -d --name $container_name --env-file $env_file -p 9000:9000 $image_name
+  docker run -d --name $container_name --env-file $env_file --network=$network --restart=always $image_name 
   container_running "$container_name"
   until [ $? -eq 0 ]; do
     sleep 1
@@ -37,9 +40,11 @@ if container_running "$container_name"; then
 else
   echo "Creating a new container..."
   cd ${path}
+  docker rm ${container_name}
+  git checkout ${branch}
   git pull
-  docker build -t $image_name --build-arg="CERTRESOLVER=${certresolver}" --build-arg="HOSTNAME=${hostname}" .
-  docker run -d --name ${container_name} --env-file $env_file -p 9000:9000 $image_name
+  docker build -t $image_name --build-arg="CERTRESOLVER=$certresolver" --build-arg="HOSTNAME=$hostname" .
+  docker run -d --name $container_name --env-file $env_file --network=$network --restart=always $image_name
   container_running "$container_name"
   until [ $? -eq 0 ]; do
     sleep 1
