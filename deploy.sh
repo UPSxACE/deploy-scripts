@@ -34,6 +34,7 @@ if container_running "$container_name"; then
     sleep 1
     container_running "$container_name"
   done
+  sleep 20
   docker stop ${container_name}_old
   docker rm ${container_name}_old
   echo "Container deployed."
